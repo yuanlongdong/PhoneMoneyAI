@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">自动刷视频 APK</string>
+    <string name="status_idle">状态：等待下载模板或一键运行</string>
+</resources>

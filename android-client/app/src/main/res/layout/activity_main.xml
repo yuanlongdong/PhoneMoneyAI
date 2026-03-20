@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="24dp">
+
+        <TextView
+            android:id="@+id/titleView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="自动刷视频 + 模板下载 + 一键运行"
+            android:textSize="24sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="使用方式：1) 填模板 URL 下载 2) 选择模板 3) 开启无障碍后点一键运行" />
+
+        <EditText
+            android:id="@+id/templateUrlInput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:hint="模板 URL，例如 https://example.com/video-templates.json" />
+
+        <Button
+            android:id="@+id/downloadTemplateButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="下载模板" />
+
+        <TextView
+            android:id="@+id/currentTemplateLabel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="当前模板：未选择"
+            android:textSize="15sp" />
+
+        <ListView
+            android:id="@+id/templateList"
+            android:layout_width="match_parent"
+            android:layout_height="180dp"
+            android:layout_marginTop="8dp"
+            android:choiceMode="singleChoice"
+            android:dividerHeight="8dp" />
+
+        <TextView
+            android:id="@+id/taskIdLabel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="运行任务：未启动"
+            android:textSize="15sp" />
+
+        <TextView
+            android:id="@+id/currentStepLabel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="当前步骤：暂无"
+            android:textSize="15sp" />
+
+        <TextView
+            android:id="@+id/executionMetaLabel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="执行结果：暂无"
+            android:textSize="14sp" />
+
+        <Button
+            android:id="@+id/oneTapRunButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:text="一键运行" />
+
+        <Button
+            android:id="@+id/stopAutomationButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="停止运行" />
+
+        <Button
+            android:id="@+id/openAccessibilitySettingsButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="打开无障碍设置" />
+
+        <TextView
+            android:id="@+id/statusView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="@string/status_idle"
+            android:textSize="16sp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="最近运行历史"
+            android:textStyle="bold" />
+
+        <ListView
+            android:id="@+id/taskHistoryList"
+            android:layout_width="match_parent"
+            android:layout_height="220dp"
+            android:layout_marginTop="8dp"
+            android:dividerHeight="8dp" />
+    </LinearLayout>
+</ScrollView>
