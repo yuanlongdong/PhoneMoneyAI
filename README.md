@@ -210,7 +210,7 @@ gradle assembleDebug
 3. 后端增加了长期记忆表 `memory_records`，沉淀成功路径和失败案例。
 4. `/execute` 已支持执行回执和可选截图路径回传。
 
-### 当前仍建议继续补的内容
+### 本次新增完成项
 
 1. Android 端已增加任务历史列表和筛选输入框。
 2. 后端记忆系统已增加 `/memory/search` 检索能力。

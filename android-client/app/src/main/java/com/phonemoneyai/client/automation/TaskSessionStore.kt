@@ -12,6 +12,10 @@ class TaskSessionStore(context: Context) {
             .putString(KEY_GOAL, goal)
             .putString(KEY_APP_PACKAGE, appPackage)
             .putBoolean(KEY_AUTOMATION_ENABLED, false)
+            .putString(KEY_CURRENT_STEP, "暂无")
+            .putString(KEY_HISTORY_ENTRY, "暂无")
+            .putString(KEY_EXECUTION_META, "暂无")
+            .putString(KEY_HISTORY_LIST, "[]")
             .apply()
     }
 
