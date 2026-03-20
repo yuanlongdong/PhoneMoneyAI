@@ -22,6 +22,7 @@ data class StepResultRequest(
     val success: Boolean,
     @SerialName("error_type") val errorType: String? = null,
     val message: String? = null,
+    @SerialName("screenshot_path") val screenshotPath: String? = null,
 )
 
 @Serializable
@@ -30,6 +31,11 @@ data class FeedbackLog(
     @SerialName("step_id") val stepId: String? = null,
     val action: String? = null,
     val result: String,
+    @SerialName("screenshot_path") val screenshotPath: String? = null,
+    @SerialName("error_category") val errorCategory: String? = null,
+    @SerialName("ocr_summary") val ocrSummary: String? = null,
+    @SerialName("ui_snapshot") val uiSnapshot: Map<String, String>? = null,
+    @SerialName("ocr_snapshot") val ocrSnapshot: Map<String, String>? = null,
 )
 
 @Serializable

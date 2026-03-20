@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from fastapi.testclient import TestClient
 
 from app.main import app
@@ -88,7 +90,7 @@ def test_decide_and_validate_flow() -> None:
     assert validate_response.json()['valid'] is False
 
 
-def test_task_progress_feedback_and_execute_dry_run() -> None:
+def test_task_progress_feedback_memory_and_execute_dry_run(tmp_path: Path) -> None:
     task_response = client.post('/task', json={'goal': '打开微信并点击收款码', 'app_name': 'com.tencent.mm'})
     task_id = task_response.json()['task_id']
 
@@ -96,24 +98,57 @@ def test_task_progress_feedback_and_execute_dry_run() -> None:
     assert next_response.status_code == 200
     assert next_response.json()['state']['current_step']['id'] == 'step-1'
 
-    result_response = client.post(f'/task/{task_id}/result', json={'success': False, 'error_type': 'not_found', 'message': 'button missing'})
+    result_response = client.post(
+        f'/task/{task_id}/result',
+        json={'success': False, 'error_type': 'not_found', 'message': 'button missing', 'screenshot_path': '/tmp/failure.png'},
+    )
     assert result_response.status_code == 200
     assert result_response.json()['status'] == TaskStatus.RETRY.value
 
     feedback_response = client.post(
         '/feedback',
-        json={'task_id': task_id, 'step_id': 'step-1', 'action': 'tap', 'result': 'retrying'},
+        json={
+            'task_id': task_id,
+            'step_id': 'step-1',
+            'action': 'tap',
+            'result': 'retrying',
+            'screenshot_path': '/tmp/failure.png',
+            'error_category': 'not_found',
+            'ocr_summary': '收款码:1',
+        },
     )
     assert feedback_response.status_code == 200
     assert feedback_response.json()['result'] == 'retrying'
+
+    memory_response = client.get('/memory')
+    assert memory_response.status_code == 200
+    assert memory_response.json()[0]['kind'] == 'failure_case'
+
+    search_response = client.get('/memory/search', params={'q': 'button missing', 'kind': 'failure_case'})
+    assert search_response.status_code == 200
+    assert search_response.json()['items'][0]['task_id'] == task_id
+
+    screenshot_dir = tmp_path / 'shots'
+    screenshot_dir.mkdir()
+    for index in range(3):
+        (screenshot_dir / f'old-{index}.png').write_text('x')
 
     execute_response = client.post(
         '/execute',
         json={
             'device_id': 'emulator-5554',
             'dry_run': True,
+            'capture_screenshot': True,
+            'verify_receipt': True,
+            'cleanup_screenshots': True,
+            'keep_latest': 1,
+            'screenshot_dir': str(screenshot_dir),
             'action': {'action': 'back'},
         },
     )
     assert execute_response.status_code == 200
-    assert 'keyevent 4' in execute_response.json()['command']
+    payload = execute_response.json()
+    assert 'keyevent 4' in payload['command']
+    assert payload['screenshot_path'].endswith('dry-run.png')
+    assert payload['receipt']['cleanup_removed'] == 2
+    assert payload['receipt']['verified'] is False

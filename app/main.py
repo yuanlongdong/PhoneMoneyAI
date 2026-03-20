@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 
 from .decision import DecisionEngine
 from .executor import ADBExecutor
@@ -13,6 +13,9 @@ from .models import (
     ExecutionResult,
     FeedbackLog,
     HealthResponse,
+    MemoryKind,
+    MemoryRecord,
+    MemorySearchResponse,
     NextStepResponse,
     ScreenPayload,
     StepResultRequest,
@@ -24,7 +27,7 @@ from .models import (
 from .orchestrator import Orchestrator
 from .perception import PerceptionFusion
 
-app = FastAPI(title="PhoneMoneyAI", version="0.2.0")
+app = FastAPI(title="PhoneMoneyAI", version="0.4.0")
 
 orchestrator = Orchestrator()
 decision_engine = DecisionEngine()
@@ -75,6 +78,20 @@ def apply_task_result(task_id: str, request: StepResultRequest) -> TaskRecord:
     if record is None:
         raise HTTPException(status_code=404, detail="Task not found")
     return record
+
+
+@app.get("/memory", response_model=list[MemoryRecord])
+def list_memories() -> list[MemoryRecord]:
+    return orchestrator.list_memories()
+
+
+@app.get("/memory/search", response_model=MemorySearchResponse)
+def search_memories(
+    q: str | None = Query(default=None),
+    kind: MemoryKind | None = Query(default=None),
+    limit: int = Query(default=10, ge=1, le=100),
+) -> MemorySearchResponse:
+    return MemorySearchResponse(items=orchestrator.search_memories(query=q, kind=kind, limit=limit), query=q, kind=kind)
 
 
 @app.post("/feedback", response_model=FeedbackLog)

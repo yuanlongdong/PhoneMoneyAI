@@ -9,12 +9,15 @@ import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import kotlinx.coroutines.suspendCancellableCoroutine
+import java.io.File
+import java.io.FileOutputStream
 import kotlin.coroutines.resume
 
 class ScreenshotOcrProcessor(private val service: AccessibilityService) {
-    suspend fun captureOcr(): List<OcrNode> {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return emptyList()
-        val bitmap = captureScreenshot() ?: return emptyList()
+    suspend fun capture(): ScreenshotCaptureResult {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return ScreenshotCaptureResult()
+        val bitmap = captureScreenshot() ?: return ScreenshotCaptureResult()
+        val screenshotPath = persistBitmap(bitmap)
         val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
         val image = InputImage.fromBitmap(bitmap, 0)
         return suspendCancellableCoroutine { continuation ->
@@ -31,12 +34,21 @@ class ScreenshotOcrProcessor(private val service: AccessibilityService) {
                             )
                         }
                     }
-                    continuation.resume(nodes)
+                    val summary = nodes.groupingBy { it.text }.eachCount().entries.joinToString { "${it.key}:${it.value}" }
+                    continuation.resume(ScreenshotCaptureResult(screenshotPath = screenshotPath, ocrNodes = nodes, ocrSummary = summary))
                 }
                 .addOnFailureListener {
-                    continuation.resume(emptyList())
+                    continuation.resume(ScreenshotCaptureResult(screenshotPath = screenshotPath))
                 }
         }
+    }
+
+    private fun persistBitmap(bitmap: Bitmap): String {
+        val output = File(service.cacheDir, "pmai-${System.currentTimeMillis()}.png")
+        FileOutputStream(output).use { stream ->
+            bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
+        }
+        return output.absolutePath
     }
 
     private suspend fun captureScreenshot(): Bitmap? = suspendCancellableCoroutine { continuation ->
@@ -59,3 +71,9 @@ class ScreenshotOcrProcessor(private val service: AccessibilityService) {
         )
     }
 }
+
+data class ScreenshotCaptureResult(
+    val screenshotPath: String? = null,
+    val ocrNodes: List<OcrNode> = emptyList(),
+    val ocrSummary: String = "",
+)

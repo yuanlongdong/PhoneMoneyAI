@@ -23,6 +23,11 @@ class ActionType(str, Enum):
     WAIT = "wait"
 
 
+class MemoryKind(str, Enum):
+    SUCCESS_PATH = "success_path"
+    FAILURE_CASE = "failure_case"
+
+
 class TaskStep(BaseModel):
     id: str
     description: str
@@ -117,6 +122,11 @@ class ExecutionRequest(BaseModel):
     device_id: str = "emulator-5554"
     action: DeviceAction
     dry_run: bool = True
+    capture_screenshot: bool = False
+    screenshot_dir: str = "artifacts/executor"
+    verify_receipt: bool = False
+    cleanup_screenshots: bool = False
+    keep_latest: int = 20
 
 
 class ExecutionResult(BaseModel):
@@ -124,6 +134,8 @@ class ExecutionResult(BaseModel):
     command: str
     stdout: str = ""
     stderr: str = ""
+    screenshot_path: str | None = None
+    receipt: dict[str, Any] = Field(default_factory=dict)
 
 
 class CreateTaskRequest(BaseModel):
@@ -165,6 +177,7 @@ class StepResultRequest(BaseModel):
     success: bool
     error_type: str | None = None
     message: str | None = None
+    screenshot_path: str | None = None
 
 
 class FeedbackLog(BaseModel):
@@ -173,8 +186,25 @@ class FeedbackLog(BaseModel):
     action: str | None = None
     result: str
     screenshot_path: str | None = None
+    error_category: str | None = None
+    ocr_summary: str | None = None
     ui_snapshot: dict[str, Any] | None = None
     ocr_snapshot: dict[str, Any] | None = None
+
+
+class MemoryRecord(BaseModel):
+    id: int | None = None
+    task_id: str
+    kind: MemoryKind
+    goal: str
+    current_step_id: str | None = None
+    payload: dict[str, Any] = Field(default_factory=dict)
+
+
+class MemorySearchResponse(BaseModel):
+    items: list[MemoryRecord]
+    query: str | None = None
+    kind: MemoryKind | None = None
 
 
 class HealthResponse(BaseModel):

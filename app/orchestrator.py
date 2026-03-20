@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from .config import settings
-from .models import CreateTaskRequest, DecisionState, FeedbackLog, StepResultRequest, TaskRecord, TaskStatus, TaskUpdateRequest
+from .models import CreateTaskRequest, DecisionState, FeedbackLog, MemoryKind, MemoryRecord, StepResultRequest, TaskRecord, TaskStatus, TaskUpdateRequest
 from .planner import Planner
 from .storage import TaskRepository
 
@@ -57,10 +57,25 @@ class Orchestrator:
         if record is None:
             return None
 
+        current_step_id = record.current_step.id if record.current_step else None
+
         if result.success:
             record.retry_count = 0
             record.last_error = None
             record.history.append(f"step:{record.current_step_index}:success")
+            self.repository.append_memory(
+                MemoryRecord(
+                    task_id=record.task_id,
+                    kind=MemoryKind.SUCCESS_PATH,
+                    goal=record.goal,
+                    current_step_id=current_step_id,
+                    payload={
+                        "history": record.history,
+                        "message": result.message,
+                        "screenshot_path": result.screenshot_path,
+                    },
+                )
+            )
             if record.current_step_index + 1 >= len(record.steps):
                 record.current_step_index = len(record.steps)
                 record.status = TaskStatus.SUCCESS
@@ -71,6 +86,21 @@ class Orchestrator:
             record.retry_count += 1
             record.last_error = result.message or result.error_type or "step_failed"
             record.history.append(f"step:{record.current_step_index}:fail:{record.last_error}")
+            self.repository.append_memory(
+                MemoryRecord(
+                    task_id=record.task_id,
+                    kind=MemoryKind.FAILURE_CASE,
+                    goal=record.goal,
+                    current_step_id=current_step_id,
+                    payload={
+                        "history": record.history,
+                        "message": result.message,
+                        "error_type": result.error_type,
+                        "screenshot_path": result.screenshot_path,
+                        "last_error": record.last_error,
+                    },
+                )
+            )
             if record.retry_count >= record.max_retries:
                 record.status = TaskStatus.FAIL
             else:
@@ -79,3 +109,9 @@ class Orchestrator:
 
     def log_feedback(self, log: FeedbackLog) -> FeedbackLog:
         return self.repository.append_feedback(log)
+
+    def list_memories(self) -> list[MemoryRecord]:
+        return self.repository.list_memories()
+
+    def search_memories(self, query: str | None = None, kind: MemoryKind | None = None, limit: int = 10) -> list[MemoryRecord]:
+        return self.repository.search_memories(query=query, kind=kind, limit=limit)
