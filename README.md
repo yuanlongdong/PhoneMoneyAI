@@ -12,6 +12,7 @@ PhoneMoneyAI 是一个面向 Android 自动化的 AI Mobile Agent 后端骨架�
 - `/decide`：对融合元素做评分，优先 UI Tree，再校验动作合法性，最后走 fallback 自愈策略。
 - `/validate`：对动作做坐标范围与重复动作校验。
 - `/feedback`：记录反馈日志，便于回放与调试。
+- `/memory/search`：支持字段权重、短语命中、关键词召回解释的记忆检索排序。
 - `/execute`：将动作翻译为 ADB 命令，支持 dry-run 直连调试。
 - `/health`：健康检查。
 
@@ -219,5 +220,5 @@ gradle assembleDebug
 ### 当前仍建议继续补的内容
 
 1. 为 Android 端增加独立的任务历史详情页。
-2. 为后端记忆系统增加 embedding/召回排序，而不只是关键字检索。
+2. 后端记忆系统已升级为带字段权重、短语命中和关键词召回解释的检索排序；后续仍可继续接入 embedding 提升语义召回。
 3. 为 `/execute` 增加更强的真机截图生命周期管理与失败重试。
