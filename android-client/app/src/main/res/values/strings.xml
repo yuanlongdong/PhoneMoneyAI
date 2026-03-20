@@ -12,4 +12,5 @@
     <string name="foreground_notification_title">自动化测试助手运行中</string>
     <string name="foreground_channel_name">自动化任务执行</string>
     <string name="foreground_channel_description">保持自动化任务在前台持续执行</string>
+    <string name="accessibility_service_description">PhoneMoneyAI automation service</string>
 </resources>

@@ -4,3 +4,6 @@ __pycache__/
 phonemoneyai.db
 
 android-client/.gradle/
+
+android-client/build/
+android-client/app/build/
