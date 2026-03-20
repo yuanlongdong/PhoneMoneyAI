@@ -186,3 +186,29 @@ export PHONEMONEYAI_OPENAI_MODEL="gpt-4.1-mini"
 - 接入 ML Kit OCR 真机结果，而不是手工模拟 payload。
 - 把成功路径 / 失败案例沉淀成长期记忆表。
 - 为 `/execute` 增加真机回执采集与截图闭环。
+
+## Android 客户端（新增）
+
+仓库现在新增了一个 `android-client/` Kotlin 工程骨架，包含：
+
+- `MainActivity`：引导用户打开无障碍设置。
+- `PhoneMoneyAccessibilityService`：监听界面变化、抓取 UI 树、上传 `/screen`、请求 `/task/{task_id}/next` 和 `/decide`。
+- `AccessibilityTreeSerializer`：把 `AccessibilityNodeInfo` 展平成后端可接收的 `ui_tree`。
+- `ActionExecutor`：先支持基础 `tap` / `back`，为后续 `input` / `swipe` / `open_app` 留了扩展点。
+- `PhoneMoneyApiClient`：直连当前 FastAPI 后端。
+
+> 默认后端地址使用 Android 模拟器访问宿主机：`http://10.0.2.2:8000`
+
+### Android 启动
+
+```bash
+cd android-client
+gradle assembleDebug
+```
+
+如果你是第一次继续开发，建议下一步补：
+
+1. 在 `PhoneMoneyAccessibilityService` 中把 `activeTaskId` / `activeGoal` 接到 UI 或 deep link。
+2. 接入截图 + ML Kit OCR 上报。
+3. 在 `ActionExecutor` 中补完 `input` / `swipe` / `open_app`。
+4. 增加执行结果回写 `/task/{task_id}/result`。
