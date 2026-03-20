@@ -212,3 +212,12 @@ gradle assembleDebug
 2. 接入截图 + ML Kit OCR 上报。
 3. 在 `ActionExecutor` 中补完 `input` / `swipe` / `open_app`。
 4. 增加执行结果回写 `/task/{task_id}/result`。
+
+
+### Android 当前已补完的 5 点
+
+1. `MainActivity` 现在可以创建任务并保存 `task_id` / goal / app package。
+2. Android 服务执行动作后会回写 `/task/{task_id}/result`。
+3. `ActionExecutor` 已补基础 `tap` / `back` / `wait` / `swipe` / `input` / `open_app`。
+4. 新增截图 OCR 处理器，使用 Accessibility screenshot + ML Kit OCR 上报。
+5. Activity 已提供最小任务控制台（创建任务 / 开始 / 停止 / 打开无障碍设置）。

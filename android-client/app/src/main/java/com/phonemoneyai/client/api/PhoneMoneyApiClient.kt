@@ -1,10 +1,14 @@
 package com.phonemoneyai.client.api
 
 import com.phonemoneyai.client.BuildConfig
+import com.phonemoneyai.client.model.CreateTaskRequest
 import com.phonemoneyai.client.model.DecisionResponse
 import com.phonemoneyai.client.model.DecisionState
+import com.phonemoneyai.client.model.FeedbackLog
 import com.phonemoneyai.client.model.NextStepResponse
 import com.phonemoneyai.client.model.ScreenRequest
+import com.phonemoneyai.client.model.StepResultRequest
+import com.phonemoneyai.client.model.TaskRecord
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
@@ -18,6 +22,12 @@ class PhoneMoneyApiClient(
     private val client: OkHttpClient = OkHttpClient(),
     private val json: Json = Json { ignoreUnknownKeys = true },
 ) {
+    suspend fun createTask(goal: String, appName: String?): TaskRecord {
+        val payload = CreateTaskRequest(goal = goal, appName = appName?.takeIf { it.isNotBlank() })
+        val responseBody = post("/task", json.encodeToString(CreateTaskRequest.serializer(), payload))
+        return json.decodeFromString(TaskRecord.serializer(), responseBody)
+    }
+
     suspend fun uploadScreen(payload: ScreenRequest) {
         post("/screen", json.encodeToString(ScreenRequest.serializer(), payload))
     }
@@ -39,6 +49,15 @@ class PhoneMoneyApiClient(
         json.decodeFromString(DecisionResponse.serializer(), responseBody)
     }
 
+    suspend fun postStepResult(taskId: String, payload: StepResultRequest): TaskRecord {
+        val responseBody = post("/task/$taskId/result", json.encodeToString(StepResultRequest.serializer(), payload))
+        return json.decodeFromString(TaskRecord.serializer(), responseBody)
+    }
+
+    suspend fun feedback(payload: FeedbackLog) {
+        post("/feedback", json.encodeToString(FeedbackLog.serializer(), payload))
+    }
+
     private suspend fun post(path: String, body: String): String = withContext(Dispatchers.IO) {
         val request = Request.Builder()
             .url("$baseUrl$path")
@@ -46,7 +65,7 @@ class PhoneMoneyApiClient(
             .build()
 
         client.newCall(request).execute().use { response ->
-            check(response.isSuccessful) { "request failed: ${response.code}" }
+            check(response.isSuccessful) { "request failed: ${response.code} ${response.body?.string().orEmpty()}" }
             response.body?.string().orEmpty()
         }
     }

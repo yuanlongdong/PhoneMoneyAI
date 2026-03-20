@@ -1,4 +1,4 @@
 <resources>
     <string name="app_name">PhoneMoneyAI Client</string>
-    <string name="status_idle">状态：等待授权无障碍服务</string>
+    <string name="status_idle">状态：等待创建任务</string>
 </resources>
