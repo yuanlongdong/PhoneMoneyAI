@@ -187,7 +187,6 @@ export PHONEMONEYAI_OPENAI_MODEL="gpt-4.1-mini"
 - 把成功路径 / 失败案例沉淀成长期记忆表。
 - 为 `/execute` 增加真机回执采集与截图闭环。
 
-
 ## Android 客户端（新增）
 
 仓库现在新增了一个 `android-client/` Kotlin 工程骨架，包含：
