@@ -212,8 +212,17 @@ export PHONEMONEYAI_OPENAI_MODEL="gpt-4.1-mini"
 ### APK 使用方式
 
 ```bash
+export JAVA_HOME=$HOME/.local/share/mise/installs/java/17.0.2
+export ANDROID_HOME=/root/android-sdk
+export ANDROID_SDK_ROOT=/root/android-sdk
 cd android-client
 gradle assembleDebug
+```
+
+如果你的环境还没准备好 Android SDK，需要先安装命令行工具并接受 license，然后再执行上面的打包命令。仓库当前已补充 `android-client/gradle.properties` 以启用 AndroidX，打出的调试 APK 默认位于：
+
+```text
+artifacts/phonemoneyai-video-runner-debug.apk
 ```
 
 安装后：
