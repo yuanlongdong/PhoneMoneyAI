@@ -95,7 +95,7 @@ class PhoneMoneyAccessibilityService : AccessibilityService() {
             historyEntry = if (success) "skip-$reason:${template.id}" else "skip-$reason-failed:${template.id}",
             executionMeta = "模板=${template.name}; 内容=${insight.title}; 命中=$keywords",
             currentVideoTitle = insight.title,
-            runtimeLogEntry = if (success) "跳过$reason：${insight.title}" else "跳过$reason失败：${insight.title}",
+            runtimeLogEntry = if (success) "跳过${reason}：${insight.title}" else "跳过${reason}失败：${insight.title}",
         )
     }
 
