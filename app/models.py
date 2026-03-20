@@ -201,8 +201,15 @@ class MemoryRecord(BaseModel):
     payload: dict[str, Any] = Field(default_factory=dict)
 
 
+class MemorySearchHit(BaseModel):
+    record: MemoryRecord
+    score: float = Field(ge=0.0)
+    matched_terms: list[str] = Field(default_factory=list)
+    reasons: list[str] = Field(default_factory=list)
+
+
 class MemorySearchResponse(BaseModel):
-    items: list[MemoryRecord]
+    items: list[MemorySearchHit]
     query: str | None = None
     kind: MemoryKind | None = None
 
