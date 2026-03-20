@@ -206,13 +206,13 @@ cd android-client
 gradle assembleDebug
 ```
 
-如果你是第一次继续开发，建议下一步补：
+Android 端目前已经完成以下闭环能力：
 
-1. 在 `PhoneMoneyAccessibilityService` 中把 `activeTaskId` / `activeGoal` 接到 UI 或 deep link。
-2. 接入截图 + ML Kit OCR 上报。
-3. 在 `ActionExecutor` 中补完 `input` / `swipe` / `open_app`。
-4. 增加执行结果回写 `/task/{task_id}/result`。
-
+1. `MainActivity` 支持创建任务并把 `task_id` / goal / app package 保存到本地会话。
+2. `MainActivity` 也支持通过 deep link 导入任务，例如：`phonemoneyai://task?task_id=task-123&goal=打开微信&app_package=com.tencent.mm`。
+3. `PhoneMoneyAccessibilityService` 会读取任务会话、上报 UI 树和 OCR、请求决策、执行动作并回写 `/task/{task_id}/result`。
+4. `ActionExecutor` 已补基础 `tap` / `back` / `wait` / `swipe` / `input` / `open_app`。
+5. OCR 已接入 Accessibility screenshot + ML Kit 上报链路。
 
 ### Android 当前已补完的 5 点
 

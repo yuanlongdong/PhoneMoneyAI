@@ -1,6 +1,7 @@
 package com.phonemoneyai.client
 
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
 import android.widget.Button
@@ -15,21 +16,23 @@ import kotlinx.coroutines.launch
 class MainActivity : AppCompatActivity() {
     private val apiClient = PhoneMoneyApiClient()
     private lateinit var taskSessionStore: TaskSessionStore
+    private lateinit var goalInput: EditText
+    private lateinit var packageInput: EditText
+    private lateinit var taskIdLabel: TextView
+    private lateinit var statusView: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         taskSessionStore = TaskSessionStore(applicationContext)
 
-        val goalInput = findViewById<EditText>(R.id.goalInput)
-        val packageInput = findViewById<EditText>(R.id.packageInput)
-        val taskIdLabel = findViewById<TextView>(R.id.taskIdLabel)
-        val statusView = findViewById<TextView>(R.id.statusView)
+        goalInput = findViewById(R.id.goalInput)
+        packageInput = findViewById(R.id.packageInput)
+        taskIdLabel = findViewById(R.id.taskIdLabel)
+        statusView = findViewById(R.id.statusView)
 
-        goalInput.setText(taskSessionStore.currentGoal())
-        packageInput.setText(taskSessionStore.currentAppPackage().orEmpty())
-        taskIdLabel.text = "当前 Task ID：${taskSessionStore.currentTaskId() ?: "未创建"}"
-        statusView.text = if (taskSessionStore.automationEnabled()) "状态：自动化运行中" else getString(R.string.status_idle)
+        hydrateUiFromSession()
+        handleDeepLink(intent?.data)
 
         findViewById<Button>(R.id.createTaskButton).setOnClickListener {
             val goal = goalInput.text.toString().trim()
@@ -43,8 +46,7 @@ class MainActivity : AppCompatActivity() {
                     statusView.text = "状态：创建任务中..."
                     val task = apiClient.createTask(goal, appPackage)
                     taskSessionStore.save(task.taskId, goal, appPackage)
-                    taskIdLabel.text = "当前 Task ID：${task.taskId}"
-                    statusView.text = "状态：任务已创建 (${task.status})"
+                    hydrateUiFromSession(task.status)
                 }.onFailure {
                     statusView.text = "状态：任务创建失败 ${it.message}"
                 }
@@ -64,5 +66,33 @@ class MainActivity : AppCompatActivity() {
         findViewById<Button>(R.id.openAccessibilitySettingsButton).setOnClickListener {
             startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleDeepLink(intent.data)
+    }
+
+    private fun hydrateUiFromSession(statusOverride: String? = null) {
+        goalInput.setText(taskSessionStore.currentGoal())
+        packageInput.setText(taskSessionStore.currentAppPackage().orEmpty())
+        taskIdLabel.text = "当前 Task ID：${taskSessionStore.currentTaskId() ?: "未创建"}"
+        statusView.text = when {
+            taskSessionStore.automationEnabled() -> "状态：自动化运行中"
+            statusOverride != null -> "状态：任务已创建 ($statusOverride)"
+            else -> getString(R.string.status_idle)
+        }
+    }
+
+    private fun handleDeepLink(data: Uri?) {
+        if (data == null || data.scheme != "phonemoneyai") return
+        val taskId = data.getQueryParameter("task_id") ?: return
+        val goal = data.getQueryParameter("goal").orEmpty()
+        val appPackage = data.getQueryParameter("app_package")
+        taskSessionStore.save(taskId, goal, appPackage)
+        taskSessionStore.updateAutomationEnabled(true)
+        hydrateUiFromSession()
+        statusView.text = "状态：已通过 deep link 导入任务"
     }
 }
