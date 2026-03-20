@@ -3,7 +3,7 @@ from __future__ import annotations
 from enum import Enum
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class TaskStatus(str, Enum):
@@ -34,6 +34,9 @@ class TaskStep(BaseModel):
 class TaskDSL(BaseModel):
     task_id: str
     goal: str
+    app_name: str | None = None
+    intent: str
+    entities: dict[str, Any] = Field(default_factory=dict)
     steps: list[TaskStep]
 
 
@@ -50,6 +53,23 @@ class OCRNode(BaseModel):
     x: int
     y: int
     confidence: float
+
+
+class Element(BaseModel):
+    source: Literal["ui", "ocr"]
+    text: str | None = None
+    resource_id: str | None = None
+    bounds: list[int] | None = None
+    position: list[int] | None = None
+    clickable: bool = False
+    class_name: str | None = None
+    confidence: float = 0.0
+
+    def center(self) -> list[int] | None:
+        if self.bounds and len(self.bounds) == 4:
+            x1, y1, x2, y2 = self.bounds
+            return [(x1 + x2) // 2, (y1 + y2) // 2]
+        return self.position
 
 
 class ScreenPayload(BaseModel):
@@ -75,6 +95,14 @@ class DecisionState(BaseModel):
     history: list[str] = Field(default_factory=list)
     last_action: DeviceAction | None = None
     last_result: str | None = None
+    screen_width: int = 1080
+    screen_height: int = 1920
+
+
+class DecisionCandidate(BaseModel):
+    element: Element
+    score: float
+    reasons: list[str] = Field(default_factory=list)
 
 
 class DecisionResponse(BaseModel):
@@ -82,6 +110,7 @@ class DecisionResponse(BaseModel):
     reason: str
     confidence: float = Field(ge=0.0, le=1.0)
     used_fallback: bool = False
+    candidates: list[DecisionCandidate] = Field(default_factory=list)
 
 
 class ExecutionRequest(BaseModel):
@@ -106,15 +135,72 @@ class CreateTaskRequest(BaseModel):
 class TaskRecord(BaseModel):
     task_id: str
     goal: str
+    app_name: str | None = None
+    intent: str
+    entities: dict[str, Any] = Field(default_factory=dict)
     status: TaskStatus
     current_step_index: int = 0
     steps: list[TaskStep]
+    retry_count: int = 0
+    max_retries: int = 3
+    last_error: str | None = None
+    history: list[str] = Field(default_factory=list)
+
+    @property
+    def current_step(self) -> TaskStep | None:
+        if 0 <= self.current_step_index < len(self.steps):
+            return self.steps[self.current_step_index]
+        return None
 
 
 class TaskUpdateRequest(BaseModel):
     status: TaskStatus | None = None
     current_step_index: int | None = None
+    retry_count: int | None = None
+    last_error: str | None = None
+    history_entry: str | None = None
+
+
+class StepResultRequest(BaseModel):
+    success: bool
+    error_type: str | None = None
+    message: str | None = None
+
+
+class FeedbackLog(BaseModel):
+    task_id: str
+    step_id: str | None = None
+    action: str | None = None
+    result: str
+    screenshot_path: str | None = None
+    ui_snapshot: dict[str, Any] | None = None
+    ocr_snapshot: dict[str, Any] | None = None
 
 
 class HealthResponse(BaseModel):
     status: Literal["ok"] = "ok"
+
+
+class NextStepResponse(BaseModel):
+    task: TaskRecord
+    state: DecisionState
+
+
+class DirectPlanResponse(BaseModel):
+    dsl: TaskDSL
+
+
+class ValidateActionRequest(BaseModel):
+    state: DecisionState
+    action: DeviceAction
+
+
+class ValidateActionResponse(BaseModel):
+    valid: bool
+    reasons: list[str] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def ensure_reason_for_invalid(self) -> "ValidateActionResponse":
+        if not self.valid and not self.reasons:
+            self.reasons.append("Unknown validation error")
+        return self

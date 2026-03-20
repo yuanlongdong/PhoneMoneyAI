@@ -1,10 +1,31 @@
 from __future__ import annotations
 
 from .config import settings
-from .models import ActionType, DecisionResponse, DecisionState, DeviceAction
+from .models import ActionType, DecisionCandidate, DecisionResponse, DecisionState, DeviceAction, Element, ScreenPayload
+from .perception import PerceptionFusion
+
+
+class ActionValidator:
+    def validate(self, state: DecisionState, action: DeviceAction) -> list[str]:
+        reasons: list[str] = []
+        if action.coordinates:
+            if len(action.coordinates) not in {2, 4}:
+                reasons.append("Coordinates must contain 2 or 4 integers.")
+            for index, value in enumerate(action.coordinates[:2]):
+                limit = state.screen_width if index == 0 else state.screen_height
+                if value < 0 or value > limit:
+                    axis = "x" if index == 0 else "y"
+                    reasons.append(f"{axis} coordinate {value} out of range.")
+        if state.last_action == action and action.action != ActionType.WAIT:
+            reasons.append("Repeated identical action blocked.")
+        return reasons
 
 
 class DecisionEngine:
+    def __init__(self) -> None:
+        self.perception = PerceptionFusion()
+        self.validator = ActionValidator()
+
     def decide(self, state: DecisionState) -> DecisionResponse:
         if state.current_step is None:
             return DecisionResponse(
@@ -13,52 +34,69 @@ class DecisionEngine:
                 confidence=0.2,
             )
 
-        target = (state.current_step.target or state.goal).lower()
-
-        for node in state.ui_tree:
-            if self._matches(target, node.text, node.resourceId):
+        candidates = self._score_candidates(state)
+        if candidates:
+            best = candidates[0]
+            action = DeviceAction(
+                action=state.current_step.action,
+                target=best.element.text or best.element.resource_id,
+                coordinates=best.element.center(),
+                text=state.current_step.params.get("text"),
+            )
+            validation_errors = self.validator.validate(state, action)
+            if not validation_errors:
                 return DecisionResponse(
-                    action=DeviceAction(
-                        action=state.current_step.action,
-                        target=node.text or node.resourceId,
-                        coordinates=self._center(node.bounds),
-                    ),
-                    reason="Matched target in UI tree with highest priority.",
-                    confidence=0.92,
-                )
-
-        for node in state.ocr:
-            if target in node.text.lower() and node.confidence >= settings.ocr_threshold:
-                return DecisionResponse(
-                    action=DeviceAction(
-                        action=ActionType.TAP,
-                        target=node.text,
-                        coordinates=[node.x, node.y],
-                    ),
-                    reason="UI tree missed target, using OCR fallback.",
-                    confidence=0.74,
-                    used_fallback=True,
+                    action=action,
+                    reason="Best scored candidate selected from fused UI/OCR elements.",
+                    confidence=min(best.score, 1.0),
+                    candidates=candidates[:5],
                 )
 
         fallback_action = self._fallback(state)
+        fallback_errors = self.validator.validate(state, fallback_action)
+        if fallback_errors:
+            fallback_action = DeviceAction(action=ActionType.WAIT, duration_ms=1500)
         return DecisionResponse(
             action=fallback_action,
-            reason="No reliable match; executing self-healing fallback.",
-            confidence=0.4,
+            reason="No valid candidate survived validation; executing self-healing fallback.",
+            confidence=0.35,
             used_fallback=True,
+            candidates=candidates[:5] if candidates else [],
         )
 
-    @staticmethod
-    def _matches(target: str, text: str | None, resource_id: str | None) -> bool:
-        haystacks = [value.lower() for value in [text, resource_id] if value]
-        return any(target in haystack or haystack in target for haystack in haystacks)
+    def validate(self, state: DecisionState, action: DeviceAction) -> list[str]:
+        return self.validator.validate(state, action)
+
+    def _score_candidates(self, state: DecisionState) -> list[DecisionCandidate]:
+        target = (state.current_step.target or state.goal).lower()
+        elements = self.perception.fuse(ScreenPayload(ui_tree=state.ui_tree, ocr=state.ocr))
+        candidates: list[DecisionCandidate] = []
+        for element in elements:
+            score, reasons = self._score_element(target, element)
+            if score > 0:
+                candidates.append(DecisionCandidate(element=element, score=score, reasons=reasons))
+        candidates.sort(key=lambda item: item.score, reverse=True)
+        return candidates
 
     @staticmethod
-    def _center(bounds: list[int] | None) -> list[int] | None:
-        if not bounds or len(bounds) != 4:
-            return None
-        x1, y1, x2, y2 = bounds
-        return [(x1 + x2) // 2, (y1 + y2) // 2]
+    def _score_element(target: str, element: Element) -> tuple[float, list[str]]:
+        score = 0.0
+        reasons: list[str] = []
+        haystacks = [value.lower() for value in [element.text, element.resource_id] if value]
+        if any(target == hay for hay in haystacks):
+            score += 0.55
+            reasons.append("exact-text-match")
+        elif any(target in hay or hay in target for hay in haystacks):
+            score += 0.35
+            reasons.append("fuzzy-text-match")
+        if element.clickable:
+            score += 0.2
+            reasons.append("clickable")
+        if element.source == "ui":
+            score += settings.ui_priority * 0.2
+            reasons.append("ui-priority")
+        score += min(element.confidence, 1.0) * 0.05
+        return score, reasons
 
     @staticmethod
     def _fallback(state: DecisionState) -> DeviceAction:
