@@ -32,8 +32,15 @@ jobs:
       - name: Install Android SDK packages
         run: sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
 
+      - name: Write Android SDK local.properties
+        working-directory: android-client
+        run: echo "sdk.dir=$ANDROID_SDK_ROOT" > local.properties
+
       - name: Build debug APK
         working-directory: android-client
+        env:
+          ANDROID_HOME: ${{ env.ANDROID_SDK_ROOT }}
+          ANDROID_SDK_ROOT: ${{ env.ANDROID_SDK_ROOT }}
         run: ./gradlew --no-daemon assembleDebug
 
       - name: Prepare release asset
