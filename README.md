@@ -231,6 +231,8 @@ artifacts/phonemoneyai-video-runner-debug.apk
 
 仓库已经内置 `.github/workflows/release-apk.yml`：向 GitHub 推送形如 `apk-release-2026-03-20` 的 tag 后，Actions 会自动构建 `android-client`，并把 `phonemoneyai-video-runner-debug.apk` 作为独立 Release asset 挂到对应 Release 页面。
 
+仓库内置了 `.github/workflows/release-apk.yml`：推送形如 `apk-release-2026-03-20-v2` 的 tag 后，GitHub Actions 会自动构建最新 APK，并把它作为 Release 页面里的独立 `.apk` 资产发布。
+
 安装后：
 
 1. 打开 APK。
