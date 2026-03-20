@@ -225,7 +225,9 @@ gradle assembleDebug
 artifacts/phonemoneyai-video-runner-debug.apk
 ```
 
-为了避免把大体积二进制直接塞进 Git 历史，仓库分发方式改为 **GitHub Releases**。构建完成后，请把 `artifacts/phonemoneyai-video-runner-debug.apk` 上传到对应 release asset，而不是继续把 APK 直接提交进仓库树。
+为了避免把大体积二进制直接塞进 Git 历史，仓库分发方式改为 **GitHub Releases 直传 APK asset**。构建完成后，请把 `artifacts/phonemoneyai-video-runner-debug.apk` 上传到对应 Release 的 Assets 区域，这样 Release 页面会直接出现一个可下载的 `.apk` 按钮。
+
+仓库已经内置 `.github/workflows/release-apk.yml`：向 GitHub 推送形如 `apk-release-2026-03-20` 的 tag 后，Actions 会自动构建 `android-client`，并把 `phonemoneyai-video-runner-debug.apk` 作为独立 Release asset 挂到对应 Release 页面。
 
 安装后：
 
