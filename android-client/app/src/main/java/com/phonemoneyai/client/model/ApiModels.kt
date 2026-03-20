@@ -4,14 +4,43 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
- data class ScreenRequest(
+data class CreateTaskRequest(
+    val goal: String,
+    @SerialName("app_name") val appName: String? = null,
+)
+
+@Serializable
+data class TaskRecord(
+    @SerialName("task_id") val taskId: String,
+    val goal: String,
+    @SerialName("app_name") val appName: String? = null,
+    val status: String,
+)
+
+@Serializable
+data class StepResultRequest(
+    val success: Boolean,
+    @SerialName("error_type") val errorType: String? = null,
+    val message: String? = null,
+)
+
+@Serializable
+data class FeedbackLog(
+    @SerialName("task_id") val taskId: String,
+    @SerialName("step_id") val stepId: String? = null,
+    val action: String? = null,
+    val result: String,
+)
+
+@Serializable
+data class ScreenRequest(
     @SerialName("task_id") val taskId: String? = null,
     @SerialName("ui_tree") val uiTree: List<UiNode>,
     val ocr: List<OcrNode> = emptyList(),
 )
 
 @Serializable
- data class UiNode(
+data class UiNode(
     val text: String? = null,
     val resourceId: String? = null,
     val bounds: List<Int>? = null,
@@ -20,7 +49,7 @@ import kotlinx.serialization.Serializable
 )
 
 @Serializable
- data class OcrNode(
+data class OcrNode(
     val text: String,
     val x: Int,
     val y: Int,
@@ -28,7 +57,7 @@ import kotlinx.serialization.Serializable
 )
 
 @Serializable
- data class TaskStep(
+data class TaskStep(
     val id: String,
     val description: String,
     val action: String,
@@ -37,7 +66,7 @@ import kotlinx.serialization.Serializable
 )
 
 @Serializable
- data class DeviceAction(
+data class DeviceAction(
     val action: String,
     val target: String? = null,
     val coordinates: List<Int>? = null,
@@ -47,7 +76,7 @@ import kotlinx.serialization.Serializable
 )
 
 @Serializable
- data class DecisionState(
+data class DecisionState(
     val goal: String,
     @SerialName("current_step") val currentStep: TaskStep? = null,
     @SerialName("ui_tree") val uiTree: List<UiNode> = emptyList(),
@@ -60,7 +89,7 @@ import kotlinx.serialization.Serializable
 )
 
 @Serializable
- data class DecisionResponse(
+data class DecisionResponse(
     val action: DeviceAction,
     val reason: String,
     val confidence: Double,
@@ -68,13 +97,13 @@ import kotlinx.serialization.Serializable
 )
 
 @Serializable
- data class NextStepResponse(
+data class NextStepResponse(
     val task: TaskPayload,
     val state: DecisionState,
 )
 
 @Serializable
- data class TaskPayload(
+data class TaskPayload(
     @SerialName("task_id") val taskId: String,
     val goal: String,
 )
