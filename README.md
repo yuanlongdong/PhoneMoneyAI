@@ -180,21 +180,18 @@ export PHONEMONEYAI_OPENAI_MODEL="gpt-4.1-mini"
 
 当环境变量存在时，`Planner` 会优先尝试用 OpenAI 返回结构化 JSON Task DSL；否则自动退回本地规则规划。
 
-## 下一步建议
+## Android 客户端
 
-- 增加 Android Kotlin Accessibility 服务，把 UI 树、截图、OCR 结果直接上报。
-- 接入 ML Kit OCR 真机结果，而不是手工模拟 payload。
-- 把成功路径 / 失败案例沉淀成长期记忆表。
-- 为 `/execute` 增加真机回执采集与截图闭环。
+仓库内置了一个 `android-client/` Kotlin Android 工程，用来和当前 FastAPI 后端做端到端联调。
 
-## Android 客户端（新增）
+### 已完成能力
 
-仓库现在新增了一个 `android-client/` Kotlin 工程骨架，包含：
-
-- `MainActivity`：引导用户打开无障碍设置。
-- `PhoneMoneyAccessibilityService`：监听界面变化、抓取 UI 树、上传 `/screen`、请求 `/task/{task_id}/next` 和 `/decide`。
-- `AccessibilityTreeSerializer`：把 `AccessibilityNodeInfo` 展平成后端可接收的 `ui_tree`。
-- `ActionExecutor`：先支持基础 `tap` / `back`，为后续 `input` / `swipe` / `open_app` 留了扩展点。
+- `MainActivity`：创建任务、保存 `task_id / goal / app package`、开始/停止自动化、打开无障碍设置。也支持 deep link 导入任务，例如：`phonemoneyai://task?task_id=task-123&goal=打开微信&app_package=com.tencent.mm`。
+- `PhoneMoneyAccessibilityService`：监听界面变化、抓取 UI 树、执行 OCR、上传 `/screen`、请求 `/task/{task_id}/next` 与 `/decide`，并在动作执行后回写 `/task/{task_id}/result`。
+- `AccessibilityTreeSerializer`：把 `AccessibilityNodeInfo` 扁平化成后端可接收的 `ui_tree`。
+- `ActionExecutor`：支持 `tap` / `back` / `wait` / `swipe` / `input` / `open_app`。
+- `ScreenshotOcrProcessor`：使用 Accessibility screenshot + ML Kit OCR 构造 `ocr` payload。
+- `TaskSessionStore`：持久化当前任务会话，让 Activity 与 AccessibilityService 共享任务上下文。
 - `PhoneMoneyApiClient`：直连当前 FastAPI 后端。
 
 > 默认后端地址使用 Android 模拟器访问宿主机：`http://10.0.2.2:8000`
@@ -206,18 +203,9 @@ cd android-client
 gradle assembleDebug
 ```
 
-Android 端目前已经完成以下闭环能力：
+### 当前仍建议继续补的内容
 
-1. `MainActivity` 支持创建任务并把 `task_id` / goal / app package 保存到本地会话。
-2. `MainActivity` 也支持通过 deep link 导入任务，例如：`phonemoneyai://task?task_id=task-123&goal=打开微信&app_package=com.tencent.mm`。
-3. `PhoneMoneyAccessibilityService` 会读取任务会话、上报 UI 树和 OCR、请求决策、执行动作并回写 `/task/{task_id}/result`。
-4. `ActionExecutor` 已补基础 `tap` / `back` / `wait` / `swipe` / `input` / `open_app`。
-5. OCR 已接入 Accessibility screenshot + ML Kit 上报链路。
-
-### Android 当前已补完的 5 点
-
-1. `MainActivity` 现在可以创建任务并保存 `task_id` / goal / app package。
-2. Android 服务执行动作后会回写 `/task/{task_id}/result`。
-3. `ActionExecutor` 已补基础 `tap` / `back` / `wait` / `swipe` / `input` / `open_app`。
-4. 新增截图 OCR 处理器，使用 Accessibility screenshot + ML Kit OCR 上报。
-5. Activity 已提供最小任务控制台（创建任务 / 开始 / 停止 / 打开无障碍设置）。
+1. 为 Android 端增加更清晰的任务历史 / 当前步骤 UI。
+2. 为执行结果追加截图路径、OCR 结果摘要和错误分类上报。
+3. 为后端增加长期记忆表，把成功路径 / 失败案例沉淀下来。
+4. 为 `/execute` 增加真机回执采集与截图闭环。
