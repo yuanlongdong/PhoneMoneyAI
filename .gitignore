@@ -7,3 +7,4 @@ android-client/.gradle/
 android-client/local.properties
 android-client/build/
 android-client/app/build/
+artifacts/*.apk

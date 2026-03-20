@@ -219,11 +219,13 @@ cd android-client
 gradle assembleDebug
 ```
 
-如果你的环境还没准备好 Android SDK，需要先安装命令行工具并接受 license，然后再执行上面的打包命令。仓库当前已补充 `android-client/gradle.properties` 以启用 AndroidX，打出的调试 APK 默认位于：
+如果你的环境还没准备好 Android SDK，需要先安装命令行工具并接受 license，然后再执行上面的打包命令。仓库当前已补充 `android-client/gradle.properties` 以启用 AndroidX，本地打出的调试 APK 默认位于：
 
 ```text
 artifacts/phonemoneyai-video-runner-debug.apk
 ```
+
+为了避免把大体积二进制直接塞进 Git 历史，仓库分发方式改为 **GitHub Releases**。构建完成后，请把 `artifacts/phonemoneyai-video-runner-debug.apk` 上传到对应 release asset，而不是继续把 APK 直接提交进仓库树。
 
 安装后：
 
