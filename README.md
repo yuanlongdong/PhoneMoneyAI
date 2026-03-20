@@ -189,6 +189,8 @@ export PHONEMONEYAI_OPENAI_MODEL="gpt-4.1-mini"
 3. **一键运行**：点击按钮后自动保存模板、拉起目标 App，并把无障碍服务切换到自动刷视频模式。
 4. **自动上滑**：`PhoneMoneyAccessibilityService` 在目标 App 前台时，按模板配置的坐标和时间间隔持续上滑。
 5. **运行历史**：APK 首页展示当前模板、运行任务 ID、当前步骤和最近刷视频历史。
+6. **实时运行日志**：APK 首页会记录最近识别到的视频标题，并单独标记“跳过直播间 / 跳过广告”等动作。
+7. **直播/广告跳过**：AccessibilityService 会根据界面文本关键字识别直播间和广告，并优先执行快速上滑跳过。
 
 ### 模板 JSON 格式
 
@@ -239,10 +241,10 @@ artifacts/phonemoneyai-video-runner-debug.apk
 
 ### 当前实现说明
 
-- `MainActivity`：聚焦模板下载、模板选择、一键运行和运行历史展示。
-- `TaskSessionStore`：持久化模板列表、当前选中模板、运行状态与历史。
+- `MainActivity`：聚焦模板下载、模板选择、一键运行、当前视频展示和实时运行日志。
+- `TaskSessionStore`：持久化模板列表、当前选中模板、运行状态、视频标题和实时日志。
 - `VideoTemplateRepository`：负责模板 JSON 的下载、解析和内置默认模板。
-- `PhoneMoneyAccessibilityService`：在模板目标包名命中时执行自动上滑。
+- `PhoneMoneyAccessibilityService`：在模板目标包名命中时识别当前视频标题，并对直播间/广告优先执行自动跳过。
 - `ActionExecutor`：保留通用动作能力，并额外提供直接执行模板滑动的方法。
 
 ### 后续可继续补的内容

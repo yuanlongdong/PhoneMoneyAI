@@ -70,6 +70,14 @@
             android:textSize="15sp" />
 
         <TextView
+            android:id="@+id/currentVideoLabel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="当前视频：未识别视频"
+            android:textSize="15sp" />
+
+        <TextView
             android:id="@+id/executionMetaLabel"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -105,6 +113,20 @@
             android:layout_marginTop="16dp"
             android:text="@string/status_idle"
             android:textSize="16sp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="实时运行日志（识别视频 / 跳过直播 / 跳过广告）"
+            android:textStyle="bold" />
+
+        <ListView
+            android:id="@+id/runtimeLogList"
+            android:layout_width="match_parent"
+            android:layout_height="220dp"
+            android:layout_marginTop="8dp"
+            android:dividerHeight="8dp" />
 
         <TextView
             android:layout_width="match_parent"

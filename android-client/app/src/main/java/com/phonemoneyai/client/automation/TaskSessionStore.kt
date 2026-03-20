@@ -4,10 +4,13 @@ import android.content.Context
 import com.phonemoneyai.client.template.VideoAutomationTemplate
 import com.phonemoneyai.client.template.VideoTemplateRepository
 import org.json.JSONArray
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
 
 class TaskSessionStore(context: Context) {
     private val preferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     private val templateRepository = VideoTemplateRepository()
+    private val timeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss")
 
     fun save(taskId: String, goal: String, appPackage: String?) {
         preferences.edit()
@@ -18,7 +21,9 @@ class TaskSessionStore(context: Context) {
             .putString(KEY_CURRENT_STEP, "暂无")
             .putString(KEY_HISTORY_ENTRY, "暂无")
             .putString(KEY_EXECUTION_META, "暂无")
+            .putString(KEY_CURRENT_VIDEO_TITLE, "未识别视频")
             .putString(KEY_HISTORY_LIST, "[]")
+            .putString(KEY_RUNTIME_LOG_LIST, "[]")
             .apply()
     }
 
@@ -60,8 +65,10 @@ class TaskSessionStore(context: Context) {
             .putString(KEY_CURRENT_STEP, "准备刷视频")
             .putString(KEY_HISTORY_ENTRY, "run:${template.id}")
             .putString(KEY_EXECUTION_META, "一键运行已启动")
+            .putString(KEY_CURRENT_VIDEO_TITLE, "等待识别视频")
             .apply()
         appendHistory("run:${template.name}")
+        appendRuntimeLog("启动模板：${template.name}")
     }
 
     fun currentTemplate(): VideoAutomationTemplate? {
@@ -71,24 +78,24 @@ class TaskSessionStore(context: Context) {
 
     fun updateAutomationEnabled(enabled: Boolean) {
         preferences.edit().putBoolean(KEY_AUTOMATION_ENABLED, enabled).apply()
+        appendRuntimeLog(if (enabled) "自动刷视频已启用" else "自动刷视频已停止")
     }
 
-    fun updateRuntimeState(currentStep: String?, historyEntry: String?, executionMeta: String?) {
-        preferences.edit()
-            .putString(KEY_CURRENT_STEP, currentStep)
-            .putString(KEY_HISTORY_ENTRY, historyEntry)
-            .putString(KEY_EXECUTION_META, executionMeta)
-            .apply()
-        historyEntry?.takeIf { it.isNotBlank() }?.let { appendHistory(it) }
-    }
-
-    private fun appendHistory(entry: String) {
-        val history = JSONArray(preferences.getString(KEY_HISTORY_LIST, "[]") ?: "[]")
-        history.put(0, entry)
-        while (history.length() > 20) {
-            history.remove(history.length() - 1)
-        }
-        preferences.edit().putString(KEY_HISTORY_LIST, history.toString()).apply()
+    fun updateRuntimeState(
+        currentStep: String? = null,
+        historyEntry: String? = null,
+        executionMeta: String? = null,
+        currentVideoTitle: String? = null,
+        runtimeLogEntry: String? = null,
+    ) {
+        preferences.edit().apply {
+            currentStep?.let { putString(KEY_CURRENT_STEP, it) }
+            historyEntry?.let { putString(KEY_HISTORY_ENTRY, it) }
+            executionMeta?.let { putString(KEY_EXECUTION_META, it) }
+            currentVideoTitle?.let { putString(KEY_CURRENT_VIDEO_TITLE, it) }
+        }.apply()
+        historyEntry?.takeIf { it.isNotBlank() }?.let(::appendHistory)
+        runtimeLogEntry?.takeIf { it.isNotBlank() }?.let(::appendRuntimeLog)
     }
 
     fun currentTaskId(): String? = preferences.getString(KEY_TASK_ID, null)
@@ -99,8 +106,30 @@ class TaskSessionStore(context: Context) {
     fun currentStep(): String = preferences.getString(KEY_CURRENT_STEP, "暂无") ?: "暂无"
     fun historyEntry(): String = preferences.getString(KEY_HISTORY_ENTRY, "暂无") ?: "暂无"
     fun executionMeta(): String = preferences.getString(KEY_EXECUTION_META, "暂无") ?: "暂无"
-    fun historyEntries(): List<String> {
-        val history = JSONArray(preferences.getString(KEY_HISTORY_LIST, "[]") ?: "[]")
+    fun currentVideoTitle(): String = preferences.getString(KEY_CURRENT_VIDEO_TITLE, "未识别视频") ?: "未识别视频"
+
+    fun historyEntries(): List<String> = readList(KEY_HISTORY_LIST)
+    fun runtimeLogEntries(): List<String> = readList(KEY_RUNTIME_LOG_LIST)
+
+    private fun appendHistory(entry: String) {
+        appendToList(KEY_HISTORY_LIST, entry, 20)
+    }
+
+    private fun appendRuntimeLog(entry: String) {
+        appendToList(KEY_RUNTIME_LOG_LIST, "${LocalTime.now().format(timeFormatter)} $entry", 40)
+    }
+
+    private fun appendToList(key: String, entry: String, maxItems: Int) {
+        val history = JSONArray(preferences.getString(key, "[]") ?: "[]")
+        history.put(0, entry)
+        while (history.length() > maxItems) {
+            history.remove(history.length() - 1)
+        }
+        preferences.edit().putString(key, history.toString()).apply()
+    }
+
+    private fun readList(key: String): List<String> {
+        val history = JSONArray(preferences.getString(key, "[]") ?: "[]")
         return buildList {
             for (index in 0 until history.length()) add(history.optString(index))
         }
@@ -115,7 +144,9 @@ class TaskSessionStore(context: Context) {
         private const val KEY_CURRENT_STEP = "current_step"
         private const val KEY_HISTORY_ENTRY = "history_entry"
         private const val KEY_EXECUTION_META = "execution_meta"
+        private const val KEY_CURRENT_VIDEO_TITLE = "current_video_title"
         private const val KEY_HISTORY_LIST = "history_list"
+        private const val KEY_RUNTIME_LOG_LIST = "runtime_log_list"
         private const val KEY_TEMPLATE_PAYLOAD = "template_payload"
         private const val KEY_SELECTED_TEMPLATE_ID = "selected_template_id"
     }

@@ -26,12 +26,15 @@ class MainActivity : AppCompatActivity() {
     private lateinit var taskIdLabel: TextView
     private lateinit var currentTemplateLabel: TextView
     private lateinit var currentStepLabel: TextView
+    private lateinit var currentVideoLabel: TextView
     private lateinit var executionMetaLabel: TextView
     private lateinit var statusView: TextView
     private lateinit var templateList: ListView
     private lateinit var historyList: ListView
+    private lateinit var runtimeLogList: ListView
     private lateinit var templateAdapter: ArrayAdapter<String>
     private lateinit var historyAdapter: ArrayAdapter<String>
+    private lateinit var runtimeLogAdapter: ArrayAdapter<String>
 
     private var templates: List<VideoAutomationTemplate> = emptyList()
     private var selectedTemplate: VideoAutomationTemplate? = null
@@ -45,16 +48,20 @@ class MainActivity : AppCompatActivity() {
         taskIdLabel = findViewById(R.id.taskIdLabel)
         currentTemplateLabel = findViewById(R.id.currentTemplateLabel)
         currentStepLabel = findViewById(R.id.currentStepLabel)
+        currentVideoLabel = findViewById(R.id.currentVideoLabel)
         executionMetaLabel = findViewById(R.id.executionMetaLabel)
         statusView = findViewById(R.id.statusView)
         templateList = findViewById(R.id.templateList)
         historyList = findViewById(R.id.taskHistoryList)
+        runtimeLogList = findViewById(R.id.runtimeLogList)
 
         templateAdapter = ArrayAdapter(this, android.R.layout.simple_list_item_single_choice, mutableListOf())
         historyAdapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, mutableListOf())
+        runtimeLogAdapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, mutableListOf())
         templateList.adapter = templateAdapter
         templateList.choiceMode = ListView.CHOICE_MODE_SINGLE
         historyList.adapter = historyAdapter
+        runtimeLogList.adapter = runtimeLogAdapter
 
         bindTemplateList()
         loadTemplates(taskSessionStore.templates())
@@ -140,10 +147,17 @@ class MainActivity : AppCompatActivity() {
             "当前模板：${it.name} / ${it.appPackage} / ${it.swipeIntervalMs}ms"
         } ?: "当前模板：未选择"
         currentStepLabel.text = "当前步骤：${taskSessionStore.currentStep()}"
+        currentVideoLabel.text = "当前视频：${taskSessionStore.currentVideoTitle()}"
         executionMetaLabel.text = "执行结果：${taskSessionStore.executionMeta()}"
+
         historyAdapter.clear()
         historyAdapter.addAll(taskSessionStore.historyEntries().ifEmpty { listOf("暂无运行历史") })
         historyAdapter.notifyDataSetChanged()
+
+        runtimeLogAdapter.clear()
+        runtimeLogAdapter.addAll(taskSessionStore.runtimeLogEntries().ifEmpty { listOf("暂无实时日志") })
+        runtimeLogAdapter.notifyDataSetChanged()
+
         statusView.text = statusOverride?.let { "状态：$it" } ?: if (taskSessionStore.automationEnabled()) {
             "状态：自动刷视频运行中"
         } else {
