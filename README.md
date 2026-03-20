@@ -1,23 +1,28 @@
 # PhoneMoneyAI
 
-PhoneMoneyAI 是一个面向 Android 自动化的 AI Mobile Agent MVP，采用 **FastAPI + ADB + SQLite** 的后端骨架，覆盖：任务规划、任务编排、界面感知融合、决策、执行与调试接口。
+PhoneMoneyAI 是一个面向 Android 自动化的 AI Mobile Agent 后端骨架，采用 **FastAPI + ADB + SQLite + 可选 OpenAI API**，覆盖：任务规划、任务编排、感知融合、决策评分、动作校验、执行与反馈闭环。
 
 ## 已实现模块
 
+- `/plan`：预览 Task DSL（intent / entities / steps）。
 - `/task`：创建/列出/更新任务，保存 Task DSL 到 SQLite。
+- `/task/{task_id}/next`：取当前待执行步骤与决策状态。
+- `/task/{task_id}/result`：回写单步结果，自动进入 `running` / `retry` / `success` / `fail`。
 - `/screen`：融合 UI Tree 与 OCR，产出统一元素视图。
-- `/decide`：优先使用 UI Tree，其次使用 OCR，再走 fallback 自愈策略。
+- `/decide`：对融合元素做评分，优先 UI Tree，再校验动作合法性，最后走 fallback 自愈策略。
+- `/validate`：对动作做坐标范围与重复动作校验。
+- `/feedback`：记录反馈日志，便于回放与调试。
 - `/execute`：将动作翻译为 ADB 命令，支持 dry-run 直连调试。
 - `/health`：健康检查。
 
-## 目录
+## 架构映射
 
-- `app/planner.py`：将目标标准化成 Task DSL。
-- `app/orchestrator.py`：任务编排与状态更新。
-- `app/perception.py`：UI/OCR 融合。
-- `app/decision.py`：规则决策 + fallback。
-- `app/executor.py`：ADB 命令构建与执行。
-- `app/storage.py`：SQLite 持久化。
+- `app/planner.py`：Goal Normalize / Intent Parser / Entity Extractor / Step Generator。
+- `app/orchestrator.py`：TaskQueue / Scheduler 简化版 / 状态机 / RetryManager / Step Tracker。
+- `app/perception.py`：UI Tree 与 OCR 融合。
+- `app/decision.py`：Rule Engine / Scorer / Validator / Fallback Manager。
+- `app/executor.py`：ADB Action Dispatcher。
+- `app/storage.py`：SQLite 持久化任务与反馈。
 - `app/main.py`：FastAPI API。
 
 ## 启动
@@ -31,7 +36,18 @@ uvicorn app.main:app --reload
 
 ## API 直连
 
-### 1. 创建任务
+### 1. 预览规划
+
+```bash
+curl -X POST http://127.0.0.1:8000/plan \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "goal": "打开微信并点击收款码",
+    "app_name": "com.tencent.mm"
+  }'
+```
+
+### 2. 创建任务
 
 ```bash
 curl -X POST http://127.0.0.1:8000/task \
@@ -42,7 +58,13 @@ curl -X POST http://127.0.0.1:8000/task \
   }'
 ```
 
-### 2. 发送感知数据
+### 3. 获取下一步
+
+```bash
+curl http://127.0.0.1:8000/task/<task_id>/next
+```
+
+### 4. 上传感知数据
 
 ```bash
 curl -X POST http://127.0.0.1:8000/screen \
@@ -62,7 +84,7 @@ curl -X POST http://127.0.0.1:8000/screen \
   }'
 ```
 
-### 3. 请求决策
+### 5. 请求决策
 
 ```bash
 curl -X POST http://127.0.0.1:8000/decide \
@@ -88,11 +110,49 @@ curl -X POST http://127.0.0.1:8000/decide \
     "ocr": [],
     "history": [],
     "last_action": null,
-    "last_result": null
+    "last_result": null,
+    "screen_width": 1080,
+    "screen_height": 1920
   }'
 ```
 
-### 4. ADB 执行 dry-run
+### 6. 校验动作
+
+```bash
+curl -X POST http://127.0.0.1:8000/validate \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "state": {
+      "goal": "收款码",
+      "current_step": null,
+      "ui_tree": [],
+      "ocr": [],
+      "history": [],
+      "last_action": null,
+      "last_result": null,
+      "screen_width": 1080,
+      "screen_height": 1920
+    },
+    "action": {
+      "action": "tap",
+      "coordinates": [500, 800]
+    }
+  }'
+```
+
+### 7. 回写步骤结果
+
+```bash
+curl -X POST http://127.0.0.1:8000/task/<task_id>/result \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "success": false,
+    "error_type": "not_found",
+    "message": "button missing"
+  }'
+```
+
+### 8. ADB 执行 dry-run
 
 ```bash
 curl -X POST http://127.0.0.1:8000/execute \
@@ -107,13 +167,22 @@ curl -X POST http://127.0.0.1:8000/execute \
   }'
 ```
 
-返回的 `command` 字段就是可以给设备控制层直接执行的 ADB 命令。
+返回的 `command` 字段就是设备控制层可以直接执行的 ADB 命令。
 
-## OpenAI API 接入建议
+## OpenAI API 接入
 
-当前仓库已经为 AI 决策层预留了配置位：
+如果你希望 Planner / Decision 直接接 OpenAI：
 
-- 环境变量：`PHONEMONEYAI_OPENAI_API_KEY`
-- 模型变量：`PHONEMONEYAI_OPENAI_MODEL`
+```bash
+export PHONEMONEYAI_OPENAI_API_KEY="your_api_key"
+export PHONEMONEYAI_OPENAI_MODEL="gpt-4.1-mini"
+```
 
-下一步可以在 `app/planner.py` 或 `app/decision.py` 中接入 OpenAI Responses API，把规则引擎与 LLM 决策混合起来。出于安全原因，**不要把任何 GitHub token 或 OpenAI key 提交到仓库里**。
+当环境变量存在时，`Planner` 会优先尝试用 OpenAI 返回结构化 JSON Task DSL；否则自动退回本地规则规划。
+
+## 下一步建议
+
+- 增加 Android Kotlin Accessibility 服务，把 UI 树、截图、OCR 结果直接上报。
+- 接入 ML Kit OCR 真机结果，而不是手工模拟 payload。
+- 把成功路径 / 失败案例沉淀成长期记忆表。
+- 为 `/execute` 增加真机回执采集与截图闭环。
