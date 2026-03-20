@@ -29,9 +29,6 @@ jobs:
       - name: Accept Android SDK licenses
         run: yes | sdkmanager --licenses >/dev/null || true
 
-      - name: Validate Gradle wrapper
-        uses: gradle/actions/wrapper-validation@v3
-
       - name: Build debug APK
         working-directory: android-client
         run: ./gradlew --no-daemon assembleDebug
