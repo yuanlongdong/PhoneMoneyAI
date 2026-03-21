@@ -187,7 +187,7 @@ export PHONEMONEYAI_OPENAI_MODEL="gpt-4.1-mini"
 
 ### 已完成能力
 
-- `MainActivity`：内置 JSON 任务编辑器、模板载入、保存配置、一键启动/停止、日志清理、任务历史筛选，以及当前步骤/循环进度展示。
+- `MainActivity`：内置 JSON 任务编辑器、模板载入、保存配置、一键启动/停止、日志清理、任务历史筛选，以及当前步骤/循环进度展示；界面包名输入会在保存时覆盖 JSON 中的 `app_package`，便于在快手/TikTok 等目标 App 之间切换。
 - `AutomationForegroundService`：以前台通知维持任务执行状态，适合长时间内容流浏览测试。
 - `PhoneMoneyAccessibilityService`：负责本地自动化主循环，按配置执行 `open_app / wait / swipe / back` 步骤，并记录每轮执行日志。
 - `ActionExecutor`：支持打开目标应用、随机化滑动轨迹、随机停留时间，以及基础无障碍动作执行。

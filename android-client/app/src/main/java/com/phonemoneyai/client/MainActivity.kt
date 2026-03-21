@@ -121,12 +121,16 @@ class MainActivity : AppCompatActivity() {
         val normalized = if (packageName.isBlank()) configText else configText.replace("com.example.targetapp", packageName)
         return taskSessionStore.run {
             kotlin.runCatching {
-                val config = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
+                val json = kotlinx.serialization.json.Json { ignoreUnknownKeys = true; prettyPrint = true }
+                val parsedConfig = json
                     .decodeFromString(com.phonemoneyai.client.model.AutomationTaskConfig.serializer(), normalized)
-                saveLocalConfig(normalized, config)
-                val loopSummary = if (config.loopCount <= 0) "持续运行，直到手动停止" else "${config.loopCount} 轮"
-                updateRuntimeState("配置已保存", "config-saved", "${config.steps.size} 个步骤 / ${loopSummary}")
-                appendLog("INFO", "保存配置成功: ${config.name}")
+                val effectiveConfig = if (packageName.isBlank()) parsedConfig else parsedConfig.copy(appPackage = packageName)
+                val persistedConfig = json.encodeToString(com.phonemoneyai.client.model.AutomationTaskConfig.serializer(), effectiveConfig)
+                configEditor.setText(persistedConfig)
+                saveLocalConfig(persistedConfig, effectiveConfig)
+                val loopSummary = if (effectiveConfig.loopCount <= 0) "持续运行，直到手动停止" else "${effectiveConfig.loopCount} 轮"
+                updateRuntimeState("配置已保存", "config-saved", "${effectiveConfig.steps.size} 个步骤 / ${loopSummary}")
+                appendLog("INFO", "保存配置成功: ${effectiveConfig.name} -> ${effectiveConfig.appPackage}")
                 if (showStatus) {
                     statusView.text = getString(R.string.status_config_saved)
                 }
