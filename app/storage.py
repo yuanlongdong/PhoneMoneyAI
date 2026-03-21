@@ -1,14 +1,17 @@
 from __future__ import annotations
 
 import json
+import re
 import sqlite3
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Iterator
 
-from .models import FeedbackLog, MemoryKind, MemoryRecord, TaskRecord, TaskStatus, TaskStep
+from .models import FeedbackLog, MemoryKind, MemoryRecord, MemorySearchHit, TaskRecord, TaskStatus, TaskStep
 
 DB_PATH = Path("phonemoneyai.db")
+TOKEN_PATTERN = re.compile(r"[\w\u4e00-\u9fff]+")
+CJK_TOKEN_PATTERN = re.compile(r"[\u4e00-\u9fff]{2,}")
 
 
 def init_db() -> None:
@@ -183,23 +186,31 @@ class TaskRepository:
             ).fetchall()
         return [self._row_to_memory(row) for row in rows]
 
-    def search_memories(self, query: str | None = None, kind: MemoryKind | None = None, limit: int = 10) -> list[MemoryRecord]:
+    def search_memories(
+        self, query: str | None = None, kind: MemoryKind | None = None, limit: int = 10
+    ) -> list[MemorySearchHit]:
         records = self.list_memories()
         if kind is not None:
             records = [record for record in records if record.kind == kind]
         if not query:
-            return records[:limit]
+            return [MemorySearchHit(record=record, score=0.0) for record in records[:limit]]
 
-        needle = query.lower()
-
-        def score(record: MemoryRecord) -> int:
-            haystacks = [record.goal.lower(), (record.current_step_id or "").lower(), json.dumps(record.payload, ensure_ascii=False).lower()]
-            return sum(3 if needle == hay else 1 for hay in haystacks if needle in hay)
-
-        ranked = [(score(record), record) for record in records]
-        ranked = [item for item in ranked if item[0] > 0]
-        ranked.sort(key=lambda item: item[0], reverse=True)
-        return [record for _, record in ranked[:limit]]
+        query_text = query.strip().lower()
+        query_terms = _expand_terms(query_text)
+        ranked: list[MemorySearchHit] = []
+        for record in records:
+            hit = _score_record(record, query_text, query_terms)
+            if hit is not None:
+                ranked.append(hit)
+        ranked.sort(
+            key=lambda item: (
+                item.score,
+                1 if item.record.kind == MemoryKind.FAILURE_CASE else 0,
+                item.record.id or 0,
+            ),
+            reverse=True,
+        )
+        return ranked[:limit]
 
     @staticmethod
     def _row_to_memory(row: sqlite3.Row | tuple) -> MemoryRecord:
@@ -228,3 +239,83 @@ class TaskRepository:
             last_error=row[10],
             history=json.loads(row[11]),
         )
+
+
+def _score_record(record: MemoryRecord, query_text: str, query_terms: set[str]) -> MemorySearchHit | None:
+    payload_text = json.dumps(record.payload, ensure_ascii=False).lower()
+    field_texts = {
+        "goal": record.goal.lower(),
+        "step": (record.current_step_id or "").lower(),
+        "payload": payload_text,
+        "kind": record.kind.value.lower(),
+        "task": record.task_id.lower(),
+    }
+    field_weights = {
+        "goal": 5.0,
+        "step": 4.0,
+        "payload": 3.0,
+        "kind": 2.0,
+        "task": 1.0,
+    }
+
+    score = 0.0
+    matched_terms: set[str] = set()
+    reasons: list[str] = []
+
+    for field_name, field_text in field_texts.items():
+        if not field_text:
+            continue
+        if query_text in field_text:
+            bonus = field_weights[field_name] * 2.5
+            score += bonus
+            reasons.append(f"完整短语命中 {field_name} (+{bonus:.1f})")
+        field_terms = _expand_terms(field_text)
+        overlap = sorted(query_terms & field_terms)
+        if overlap:
+            matched_terms.update(overlap)
+            token_score = len(overlap) * field_weights[field_name]
+            score += token_score
+            reasons.append(f"关键词命中 {field_name}: {', '.join(overlap[:5])} (+{token_score:.1f})")
+        for term in query_terms:
+            if len(term) < 2 or term in overlap:
+                continue
+            if term in field_text:
+                partial_bonus = field_weights[field_name] * 0.5
+                score += partial_bonus
+                matched_terms.add(term)
+                reasons.append(f"子串命中 {field_name}: {term} (+{partial_bonus:.1f})")
+
+    history = record.payload.get("history")
+    if isinstance(history, list):
+        history_hits = sum(1 for entry in history if query_text in str(entry).lower())
+        if history_hits:
+            history_bonus = history_hits * 1.5
+            score += history_bonus
+            reasons.append(f"历史轨迹命中 {history_hits} 次 (+{history_bonus:.1f})")
+
+    if score <= 0:
+        return None
+
+    return MemorySearchHit(
+        record=record,
+        score=round(score, 2),
+        matched_terms=sorted(matched_terms),
+        reasons=reasons[:6],
+    )
+
+
+def _expand_terms(text: str) -> set[str]:
+    normalized = text.lower().strip()
+    if not normalized:
+        return set()
+    terms = {match.group(0) for match in TOKEN_PATTERN.finditer(normalized)}
+    for token in list(terms):
+        if len(token) > 4:
+            terms.update(part for part in re.split(r"[_\-:/\\.]+", token) if len(part) >= 2)
+    for match in CJK_TOKEN_PATTERN.finditer(normalized):
+        token = match.group(0)
+        if len(token) <= 4:
+            terms.add(token)
+            continue
+        terms.update(token[index : index + 2] for index in range(len(token) - 1))
+    return {term for term in terms if term}

@@ -5,6 +5,6 @@
     android:accessibilityFlags="flagReportViewIds|flagRetrieveInteractiveWindows"
     android:canRetrieveWindowContent="true"
     android:canPerformGestures="true"
-    android:description="PhoneMoneyAI automation service"
+    android:description="@string/accessibility_service_description"
     android:notificationTimeout="100"
     android:settingsActivity="com.phonemoneyai.client.MainActivity" />

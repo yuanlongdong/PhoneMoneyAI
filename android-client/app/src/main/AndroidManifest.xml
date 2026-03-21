@@ -6,7 +6,7 @@
     <application
         android:allowBackup="true"
         android:icon="@android:drawable/sym_def_app_icon"
-        android:label="PhoneMoneyAI Client"
+        android:label="@string/app_name"
         android:roundIcon="@android:drawable/sym_def_app_icon"
         android:supportsRtl="true"
         android:theme="@style/Theme.PhoneMoneyAI">
@@ -26,6 +26,12 @@
                 <data android:scheme="phonemoneyai" android:host="task" />
             </intent-filter>
         </activity>
+
+
+        <service
+            android:name=".automation.AutomationForegroundService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
 
         <service
             android:name=".automation.PhoneMoneyAccessibilityService"

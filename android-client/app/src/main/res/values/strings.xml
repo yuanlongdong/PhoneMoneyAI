@@ -1,4 +1,16 @@
 <resources>
-    <string name="app_name">PhoneMoneyAI Client</string>
+    <string name="app_name">Automation Test Assistant</string>
     <string name="status_idle">状态：等待创建任务</string>
+    <string name="status_idle_local">状态：等待载入任务配置</string>
+    <string name="status_running_local">状态：自动化执行中</string>
+    <string name="status_stopped">状态：自动化已停止</string>
+    <string name="status_template_loaded">状态：已载入默认模板</string>
+    <string name="status_config_saved">状态：配置保存成功</string>
+    <string name="status_logs_cleared">状态：日志已清空</string>
+    <string name="status_config_required">状态：请先填写 JSON 配置</string>
+    <string name="status_config_invalid">状态：配置无效：%1$s</string>
+    <string name="foreground_notification_title">自动化测试助手运行中</string>
+    <string name="foreground_channel_name">自动化任务执行</string>
+    <string name="foreground_channel_description">保持自动化任务在前台持续执行</string>
+    <string name="accessibility_service_description">PhoneMoneyAI automation service</string>
 </resources>

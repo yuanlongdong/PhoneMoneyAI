@@ -13,30 +13,64 @@
             android:id="@+id/titleView"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="PhoneMoneyAI Android Client"
+            android:text="Android 自动化测试助手"
             android:textSize="24sp"
             android:textStyle="bold" />
 
-        <EditText
-            android:id="@+id/goalInput"
+        <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:hint="目标，例如：打开微信并点击收款码" />
+            android:layout_marginTop="8dp"
+            android:text="用于 UI 自动化测试、演示和内部 RPA，支持 JSON 任务配置、循环滑动、随机停留、启动/停止与本地日志。"
+            android:textSize="14sp" />
 
         <EditText
             android:id="@+id/packageInput"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:hint="目标应用包名，例如：com.example.targetapp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
-            android:hint="应用包名，例如：com.tencent.mm" />
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/loadTemplateButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="载入模板" />
+
+            <Button
+                android:id="@+id/saveConfigButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:layout_weight="1"
+                android:text="保存配置" />
+        </LinearLayout>
+
+        <EditText
+            android:id="@+id/configEditor"
+            android:layout_width="match_parent"
+            android:layout_height="220dp"
+            android:layout_marginTop="12dp"
+            android:gravity="top|start"
+            android:hint="JSON任务配置"
+            android:inputType="textMultiLine|textNoSuggestions"
+            android:minLines="10"
+            android:scrollbars="vertical"
+            android:textSize="13sp" />
 
         <TextView
             android:id="@+id/taskIdLabel"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:text="当前 Task ID：未创建"
+            android:text="当前任务：未配置"
             android:textSize="15sp" />
 
         <TextView
@@ -55,48 +89,35 @@
             android:text="执行结果：暂无"
             android:textSize="14sp" />
 
-        <EditText
-            android:id="@+id/historyFilterInput"
+        <TextView
+            android:id="@+id/loopSummaryLabel"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:hint="筛选任务历史，例如 success / fail / 收款码" />
-
-        <ListView
-            android:id="@+id/taskHistoryList"
-            android:layout_width="match_parent"
-            android:layout_height="220dp"
             android:layout_marginTop="8dp"
-            android:dividerHeight="8dp" />
+            android:text="循环进度：0/0"
+            android:textSize="14sp" />
 
         <TextView
             android:id="@+id/statusView"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="@string/status_idle"
+            android:layout_marginTop="12dp"
+            android:text="@string/status_idle_local"
             android:textSize="16sp" />
-
-        <Button
-            android:id="@+id/createTaskButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:text="创建任务" />
 
         <Button
             android:id="@+id/startAutomationButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:text="开始自动化" />
+            android:layout_marginTop="20dp"
+            android:text="一键启动" />
 
         <Button
             android:id="@+id/stopAutomationButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
-            android:text="停止自动化" />
+            android:text="一键停止" />
 
         <Button
             android:id="@+id/openAccessibilitySettingsButton"
@@ -104,5 +125,47 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
             android:text="打开无障碍设置" />
+
+        <Button
+            android:id="@+id/clearLogsButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="清空日志" />
+
+        <EditText
+            android:id="@+id/historyFilterInput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:hint="筛选历史，例如 loop-1 / failed / 配置" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="任务历史"
+            android:textStyle="bold" />
+
+        <ListView
+            android:id="@+id/taskHistoryList"
+            android:layout_width="match_parent"
+            android:layout_height="180dp"
+            android:layout_marginTop="8dp"
+            android:dividerHeight="8dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="执行日志"
+            android:textStyle="bold" />
+
+        <ListView
+            android:id="@+id/logList"
+            android:layout_width="match_parent"
+            android:layout_height="220dp"
+            android:layout_marginTop="8dp"
+            android:dividerHeight="8dp" />
     </LinearLayout>
 </ScrollView>

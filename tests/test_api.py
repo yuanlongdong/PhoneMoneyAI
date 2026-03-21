@@ -126,7 +126,10 @@ def test_task_progress_feedback_memory_and_execute_dry_run(tmp_path: Path) -> No
 
     search_response = client.get('/memory/search', params={'q': 'button missing', 'kind': 'failure_case'})
     assert search_response.status_code == 200
-    assert search_response.json()['items'][0]['task_id'] == task_id
+    hit = search_response.json()['items'][0]
+    assert hit['record']['task_id'] == task_id
+    assert hit['score'] > 0
+    assert any(term in {'button', 'missing'} for term in hit['matched_terms'])
 
     screenshot_dir = tmp_path / 'shots'
     screenshot_dir.mkdir()
@@ -152,3 +155,26 @@ def test_task_progress_feedback_memory_and_execute_dry_run(tmp_path: Path) -> No
     assert payload['screenshot_path'].endswith('dry-run.png')
     assert payload['receipt']['cleanup_removed'] == 2
     assert payload['receipt']['verified'] is False
+
+
+def test_memory_search_ranking_prefers_phrase_and_weighted_fields() -> None:
+    first_task = client.post('/task', json={'goal': '打开微信并点击收款码', 'app_name': 'com.tencent.mm'}).json()['task_id']
+    second_task = client.post('/task', json={'goal': '打开支付宝并点击收款', 'app_name': 'com.eg.android.AlipayGphone'}).json()['task_id']
+
+    client.post(
+        f'/task/{first_task}/result',
+        json={'success': False, 'error_type': 'not_found', 'message': 'button missing on payment code page'},
+    )
+    client.post(
+        f'/task/{second_task}/result',
+        json={'success': False, 'error_type': 'timeout', 'message': 'network timeout while loading screen'},
+    )
+
+    response = client.get('/memory/search', params={'q': 'payment code button missing', 'kind': 'failure_case'})
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload['items']
+    top_hit = payload['items'][0]
+    assert top_hit['record']['task_id'] == first_task
+    assert top_hit['score'] >= payload['items'][-1]['score']
+    assert top_hit['reasons']

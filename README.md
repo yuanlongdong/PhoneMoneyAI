@@ -12,6 +12,7 @@ PhoneMoneyAI 是一个面向 Android 自动化的 AI Mobile Agent 后端骨架�
 - `/decide`：对融合元素做评分，优先 UI Tree，再校验动作合法性，最后走 fallback 自愈策略。
 - `/validate`：对动作做坐标范围与重复动作校验。
 - `/feedback`：记录反馈日志，便于回放与调试。
+- `/memory/search`：支持字段权重、短语命中、关键词召回解释的记忆检索排序。
 - `/execute`：将动作翻译为 ADB 命令，支持 dry-run 直连调试。
 - `/health`：健康检查。
 
@@ -182,42 +183,39 @@ export PHONEMONEYAI_OPENAI_MODEL="gpt-4.1-mini"
 
 ## Android 客户端
 
-仓库内置了一个 `android-client/` Kotlin Android 工程，用来和当前 FastAPI 后端做端到端联调。
+仓库内置了一个 `android-client/` Kotlin Android 工程，当前既保留后端联调代码，也新增了一个**本地 JSON 任务驱动的 Android 自动化测试助手**，用于合规的 UI 测试、演示与内部 RPA。
 
 ### 已完成能力
 
-- `MainActivity`：创建任务、保存 `task_id / goal / app package`、开始/停止自动化、打开无障碍设置。也支持 deep link 导入任务，例如：`phonemoneyai://task?task_id=task-123&goal=打开微信&app_package=com.tencent.mm`。
-- `PhoneMoneyAccessibilityService`：监听界面变化、抓取 UI 树、执行 OCR、上传 `/screen`、请求 `/task/{task_id}/next` 与 `/decide`，并在动作执行后回写 `/task/{task_id}/result`。
-- `AccessibilityTreeSerializer`：把 `AccessibilityNodeInfo` 扁平化成后端可接收的 `ui_tree`。
-- `ActionExecutor`：支持 `tap` / `back` / `wait` / `swipe` / `input` / `open_app`。
-- `ScreenshotOcrProcessor`：使用 Accessibility screenshot + ML Kit OCR 构造 `ocr` payload。
-- `TaskSessionStore`：持久化当前任务会话，让 Activity 与 AccessibilityService 共享任务上下文。
-- `PhoneMoneyApiClient`：直连当前 FastAPI 后端。
+- `MainActivity`：内置 JSON 任务编辑器、模板载入、保存配置、一键启动/停止、日志清理、任务历史筛选，以及当前步骤/循环进度展示。
+- `AutomationForegroundService`：以前台通知维持任务执行状态，适合长时间内容流浏览测试。
+- `PhoneMoneyAccessibilityService`：负责本地自动化主循环，按配置执行 `open_app / wait / swipe / back` 步骤，并记录每轮执行日志。
+- `ActionExecutor`：支持打开目标应用、随机化滑动轨迹、随机停留时间，以及基础无障碍动作执行。
+- `TaskSessionStore`：持久化 JSON 配置、执行状态、循环次数、历史事件与本地日志。
+- `PhoneMoneyApiClient` 与既有后端链路仍保留，便于后续继续做端到端联调。
 
-> 默认后端地址使用 Android 模拟器访问宿主机：`http://10.0.2.2:8000`
+### 默认任务模板
 
-### Android 启动
+默认 JSON 模板支持：
+
+1. 打开目标应用；
+2. 首屏等待；
+3. 向上滑动浏览内容流；
+4. 随机停留；
+5. 按 `loop_count` 循环执行。
+
+### Android 构建
 
 ```bash
 cd android-client
-gradle assembleDebug
+export JAVA_HOME=/root/.local/share/mise/installs/java/17.0.2
+gradle assembleRelease
 ```
 
-### 新增闭环增强
-
-1. Android 端现在会展示当前步骤、最近历史和执行结果摘要。
-2. 反馈日志会追加截图路径、OCR 摘要和错误分类。
-3. 后端增加了长期记忆表 `memory_records`，沉淀成功路径和失败案例。
-4. `/execute` 已支持执行回执和可选截图路径回传。
-
-### 本次新增完成项
-
-1. Android 端已增加任务历史列表和筛选输入框。
-2. 后端记忆系统已增加 `/memory/search` 检索能力。
-3. `/execute` 已增加真实设备回执校验开关和截图清理策略。
+> 说明：Release 构建已配置为可安装的 release 变体，并默认复用 debug signing，方便测试环境直接安装。
 
 ### 当前仍建议继续补的内容
 
-1. 为 Android 端增加独立的任务历史详情页。
-2. 为后端记忆系统增加 embedding/召回排序，而不只是关键字检索。
-3. 为 `/execute` 增加更强的真机截图生命周期管理与失败重试。
+1. 为 Android 端补充导入/导出任务模板文件。
+2. 为自动化循环增加更细粒度的暂停/恢复控制。
+3. 在具备 Android SDK 的 CI 环境中产出并归档正式的 Release APK 工件。
