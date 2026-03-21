@@ -124,7 +124,8 @@ class MainActivity : AppCompatActivity() {
                 val config = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
                     .decodeFromString(com.phonemoneyai.client.model.AutomationTaskConfig.serializer(), normalized)
                 saveLocalConfig(normalized, config)
-                updateRuntimeState("配置已保存", "config-saved", "${config.steps.size} 个步骤 / ${config.loopCount} 轮")
+                val loopSummary = if (config.loopCount <= 0) "持续运行，直到手动停止" else "${config.loopCount} 轮"
+                updateRuntimeState("配置已保存", "config-saved", "${config.steps.size} 个步骤 / ${loopSummary}")
                 appendLog("INFO", "保存配置成功: ${config.name}")
                 if (showStatus) {
                     statusView.text = getString(R.string.status_config_saved)
@@ -154,7 +155,9 @@ class MainActivity : AppCompatActivity() {
         taskIdLabel.text = "当前任务：${taskSessionStore.currentGoal().ifBlank { "未配置" }}"
         currentStepLabel.text = "当前步骤：${taskSessionStore.currentStep()}"
         executionMetaLabel.text = "执行结果：${taskSessionStore.executionMeta()}"
-        loopSummaryLabel.text = "循环进度：${taskSessionStore.completedLoops()}/${taskSessionStore.configuredLoopCount()}"
+        val configuredLoops = taskSessionStore.configuredLoopCount()
+        val loopTargetLabel = if (configuredLoops <= 0) "∞" else configuredLoops.toString()
+        loopSummaryLabel.text = "循环进度：${taskSessionStore.completedLoops()}/${loopTargetLabel}"
         renderHistory(historyFilterInput.text?.toString().orEmpty())
         renderLogs()
         statusView.text = when {

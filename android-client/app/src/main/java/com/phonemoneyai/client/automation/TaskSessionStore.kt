@@ -92,7 +92,7 @@ class TaskSessionStore(context: Context) {
     fun currentStep(): String = preferences.getString(KEY_CURRENT_STEP, "暂无") ?: "暂无"
     fun historyEntry(): String = preferences.getString(KEY_HISTORY_ENTRY, "暂无") ?: "暂无"
     fun executionMeta(): String = preferences.getString(KEY_EXECUTION_META, "暂无") ?: "暂无"
-    fun configuredLoopCount(): Int = preferences.getInt(KEY_LOOP_COUNT, 1)
+    fun configuredLoopCount(): Int = preferences.getInt(KEY_LOOP_COUNT, 0)
     fun completedLoops(): Int = preferences.getInt(KEY_COMPLETED_LOOPS, 0)
     fun historyEntries(): List<String> {
         val history = JSONArray(preferences.getString(KEY_HISTORY_LIST, "[]") ?: "[]")
@@ -127,7 +127,7 @@ class TaskSessionStore(context: Context) {
             {
               "name": "内容流浏览测试",
               "app_package": "com.example.targetapp",
-              "loop_count": 3,
+              "loop_count": 0,
               "steps": [
                 {
                   "action": "open_app",

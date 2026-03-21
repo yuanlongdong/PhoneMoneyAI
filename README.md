@@ -202,7 +202,7 @@ export PHONEMONEYAI_OPENAI_MODEL="gpt-4.1-mini"
 2. 首屏等待；
 3. 向上滑动浏览内容流；
 4. 随机停留；
-5. 按 `loop_count` 循环执行。
+5. 按 `loop_count` 循环执行；当 `loop_count <= 0` 时持续运行直到手动停止。
 
 ### Android 构建
 

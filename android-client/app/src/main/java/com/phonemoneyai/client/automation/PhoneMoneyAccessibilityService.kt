@@ -58,32 +58,36 @@ class PhoneMoneyAccessibilityService : AccessibilityService() {
         }
         val seed = config.randomSeed ?: System.currentTimeMillis()
         val random = Random(seed)
-        sessionStore.startRun(config.loopCount)
-        sessionStore.appendLog("INFO", "开始执行 ${config.name}, loop=${config.loopCount}, seed=$seed")
+        val loopLimit = config.loopCount
+        val loopLabel = if (loopLimit <= 0) "∞" else loopLimit.toString()
+        sessionStore.startRun(loopLimit)
+        sessionStore.appendLog("INFO", "开始执行 ${config.name}, loop=${loopLabel}, seed=$seed")
         AutomationForegroundService.update(applicationContext, "运行中：${config.name}")
 
-        repeat(config.loopCount) { loopIndex ->
-            if (!scope.isActive || !sessionStore.automationEnabled()) return
+        var loopIndex = 0
+        while (scope.isActive && sessionStore.automationEnabled() && (loopLimit <= 0 || loopIndex < loopLimit)) {
             sessionStore.markLoopCompleted(loopIndex)
             executeLoop(config, loopIndex + 1, random)
+            loopIndex += 1
         }
 
         sessionStore.updateAutomationEnabled(false)
         sessionStore.updateRuntimeState(
             currentStep = "已完成",
             historyEntry = "all-loops-finished",
-            executionMeta = "循环 ${config.loopCount} 次已执行完成",
+            executionMeta = if (loopLimit <= 0) "已手动停止持续运行任务" else "循环 ${loopLimit} 次已执行完成",
         )
-        sessionStore.appendLog("INFO", "任务执行完成")
-        AutomationForegroundService.update(applicationContext, "已完成：${config.name}")
+        sessionStore.appendLog("INFO", if (loopLimit <= 0) "任务已手动停止" else "任务执行完成")
+        AutomationForegroundService.update(applicationContext, if (loopLimit <= 0) "已停止：${config.name}" else "已完成：${config.name}")
         delay(600)
         AutomationForegroundService.stop(applicationContext)
     }
 
     private suspend fun executeLoop(config: AutomationTaskConfig, loopNumber: Int, random: Random) {
-        sessionStore.appendLog("INFO", "开始第 $loopNumber/${config.loopCount} 轮")
+        val loopLabel = if (config.loopCount <= 0) "∞" else config.loopCount.toString()
+        sessionStore.appendLog("INFO", "开始第 $loopNumber/${loopLabel} 轮")
         sessionStore.updateRuntimeState(
-            currentStep = "循环 $loopNumber/${config.loopCount}",
+            currentStep = "循环 $loopNumber/${loopLabel}",
             historyEntry = "loop-$loopNumber-start",
             executionMeta = "准备执行 ${config.steps.size} 个步骤",
         )
@@ -116,7 +120,7 @@ class PhoneMoneyAccessibilityService : AccessibilityService() {
             delay(350)
         }
         sessionStore.markLoopCompleted(loopNumber)
-        sessionStore.appendLog("INFO", "完成第 $loopNumber/${config.loopCount} 轮")
+        sessionStore.appendLog("INFO", "完成第 $loopNumber/${loopLabel} 轮")
     }
 
     override fun onInterrupt() {

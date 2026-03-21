@@ -8,7 +8,7 @@ import kotlin.math.roundToInt
 data class AutomationTaskConfig(
     val name: String = "内容流浏览测试",
     @SerialName("app_package") val appPackage: String,
-    @SerialName("loop_count") val loopCount: Int = 1,
+    @SerialName("loop_count") val loopCount: Int = 0,
     @SerialName("random_seed") val randomSeed: Long? = null,
     val steps: List<AutomationStep> = emptyList(),
 )
